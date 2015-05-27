@@ -32,6 +32,7 @@ const byte height = 64;   //Hight of screen
 
 boolean gameover = false;
 boolean showTitle = true;
+boolean drawFrame = false;
 int x = 0;
 int y = 0;
 //high score variables
@@ -39,6 +40,7 @@ char text[16];
 char initials[3];
 ///
 int score = 0;
+byte activeNum = 0;
 byte     moveAmount = 3;
 const int unitSize = 3;
 byte  moveDelayReset = 5;
@@ -50,9 +52,9 @@ int moveDelay = moveDelayReset;
 byte direct = RIGHT;
 int pressATimer = 0;
 const int pressATimerReset = 30;
-const byte maxUnits = 75  ; //the maximum body segmants you can have///
-int startX = 4 * unitSize;
-int startY = 8 * unitSize;
+const byte maxUnits = 200  ; //the maximum body segmants you can have///
+const byte startX = 4 * unitSize;
+const byte startY = 8 * unitSize;
 
 
 
@@ -60,8 +62,8 @@ int startY = 8 * unitSize;
 
 class Unit {
   public:
-    int x, y;
-    boolean isActive = false;
+    byte x, y;
+
 
 };
 Unit body[maxUnits]; //makes maxUnits number of body segments.
@@ -358,30 +360,29 @@ void enterHighScore(byte file)
 
 
 void drawUnits() {
-  for (byte i = maxUnits - 1; i > 0; i--) {
-    if (body[i].isActive) {
+  if (activeNum > 0) {
+    for (byte i = 0; i < activeNum - 1; i++) {
+
       display.fillRect(body[i].x, body[i].y, unitSize, unitSize, WHITE);
-    } else {
-      display.fillRect(2, 2, unitSize, unitSize, BLACK);
+
     }
   }
-  if (body[0].isActive)
-    display.fillRect(body[0].x, body[0].y, unitSize, unitSize, WHITE);
 }
 void updateUnits() {
   int oldPosX, oldPosY, newPosX, newPosY;
   newPosX = x;
   newPosY = y;
-  for (byte i = 0; i < maxUnits; i++) {
+  if (activeNum > 0) {
+    for (byte i = 0; i < activeNum - 1; i++) {
 
-    oldPosX = body[i].x;
-    oldPosY = body[i].y;
+      oldPosX = body[i].x;
+      oldPosY = body[i].y;
 
-    body[i].x = newPosX;
-    body[i].y = newPosY;
-    newPosX = oldPosX;
-    newPosY = oldPosY;
-
+      body[i].x = newPosX;
+      body[i].y = newPosY;
+      newPosX = oldPosX;
+      newPosY = oldPosY;
+    }
 
 
   }
@@ -393,15 +394,17 @@ void checkCollision() {
     gameover = true;
     resetApple();
   }
-  
-  for(byte i =0;i<maxUnits;i++){
-   if(body[i].isActive){
-    if(collision.collidePointRect(x,y,body[i].x,body[i].y,unitSize,unitSize)){
-      delay(500);
-      gameover = true;
-      resetApple();
+
+  if (activeNum > 0) {
+    for (byte i = 0; i < activeNum - 1; i++) {
+
+      if (collision.collidePointRect(x, y, body[i].x, body[i].y, unitSize, unitSize)) {
+        delay(500);
+        gameover = true;
+        resetApple();
+      }
+
     }
-   } else{break;}
   }
 
   if (collision.collideRectRect(apple.x, apple.y, unitSize, unitSize, x, y, unitSize, unitSize)) {
@@ -419,12 +422,10 @@ void checkCollision() {
   }
 }
 void addUnit() {
-  for (byte i = 0; i < maxUnits; i++) {
-    if (!body[i].isActive) {
-      body[i].isActive = true;
-      break;
-    }
-  }
+  activeNum ++;
+  if (activeNum > maxUnits)
+    activeNum = maxUnits;
+
 }
 
 void resetApple() {
@@ -450,6 +451,8 @@ void updateHead() {
 
   moveDelay --;
   if (moveDelay < 0) {
+    drawFrame = true;
+
     moveDelay = moveDelayReset;
     updateUnits();
     switch (direct) {
@@ -470,14 +473,14 @@ void updateHead() {
   }
 }
 void resetSnake() {
-  for (byte i = 0; i < maxUnits; i++) {
-    body[i].isActive = false;
+  activeNum = 0;
 
-  }
+
   x = startX;
   y = startY;
   direct = RIGHT;
 }
+
 void titleScreen()
 {
 
@@ -636,20 +639,22 @@ void resetPlayArea() {
 void loop() {
   // put your main code here, to run repeatedly:
   if (!showTitle & !gameover) {
-    display.drawRect(0, 0, width, height, WHITE);
-    display.fillRect(x, y, unitSize, unitSize, WHITE);
-    display.setCursor(width / 2, 3);
-    display.print(score);
-    drawUnits();
-    ////draw apple
-    display.drawRect(apple.x, apple.y, unitSize, unitSize, WHITE);
-    display.drawPixel(apple.x + 1, apple.y - 1, WHITE);
-    display.drawPixel(apple.x, apple.y - 2, WHITE);
-    /////////
+    if (drawFrame) {
+      display.drawRect(0, 0, width, height, WHITE);
+      display.fillRect(x, y, unitSize, unitSize, WHITE);
+      display.setCursor(width / 2, 3);
+      display.print(score);
+      drawUnits();
+      ////draw apple
+      display.drawRect(apple.x, apple.y, unitSize, unitSize, WHITE);
+      display.drawPixel(apple.x + 1, apple.y - 1, WHITE);
+      display.drawPixel(apple.x, apple.y - 2, WHITE);
+      /////////
 
-    //display.drawBitmap(apple.x,apple.y,appleImg,8,8,WHITE);
-    display.display();
-
+      //display.drawBitmap(apple.x,apple.y,appleImg,8,8,WHITE);
+      display.display();
+      drawFrame = false;
+    }
 
     updateHead();
     checkCollision();
