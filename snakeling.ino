@@ -81,6 +81,8 @@ void setup() {
 
 }
 
+
+
 void intro()
 {
   display.setTextSize(1);
@@ -390,6 +392,16 @@ void checkCollision() {
     delay(500);
     gameover = true;
     resetApple();
+  }
+  
+  for(byte i =0;i<maxUnits;i++){
+   if(body[i].isActive){
+    if(collision.collidePointRect(x,y,body[i].x,body[i].y,unitSize,unitSize)){
+      delay(500);
+      gameover = true;
+      resetApple();
+    }
+   } else{break;}
   }
 
   if (collision.collideRectRect(apple.x, apple.y, unitSize, unitSize, x, y, unitSize, unitSize)) {
