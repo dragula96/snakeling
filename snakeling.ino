@@ -32,7 +32,7 @@ const byte height = 64;   //Hight of screen
 
 boolean gameover = false;
 boolean showTitle = true;
-boolean drawFrame = false;
+
 int x = 0;
 int y = 0;
 //high score variables
@@ -44,9 +44,9 @@ byte activeNum = 0;
 byte     moveAmount = 3;
 const int unitSize = 3;
 byte  moveDelayReset = 5;
-int slowDelay = 7;
-byte medDelay = 4;
-byte fastDelay = 2;
+int slowDelay = 9;
+byte medDelay = 5;
+byte fastDelay = 3;
 int moveDelay = moveDelayReset;
 
 byte direct = RIGHT;
@@ -373,7 +373,7 @@ void updateUnits() {
   newPosX = x;
   newPosY = y;
   if (activeNum > 0) {
-    for (byte i = 0; i < activeNum - 1; i++) {
+    for (byte i = 0; i < maxUnits; i++) {
 
       oldPosX = body[i].x;
       oldPosY = body[i].y;
@@ -392,7 +392,7 @@ void checkCollision() {
 
     delay(500);
     gameover = true;
-    resetApple();
+
   }
 
   if (activeNum > 0) {
@@ -401,7 +401,7 @@ void checkCollision() {
       if (collision.collidePointRect(x, y, body[i].x, body[i].y, unitSize, unitSize)) {
         delay(500);
         gameover = true;
-        resetApple();
+
       }
 
     }
@@ -436,22 +436,22 @@ void resetApple() {
 
 void updateHead() {
 
-  if (!digitalRead(RIGHT)) {
+  if (!digitalRead(RIGHT) & direct != LEFT) {
     direct = RIGHT;
   }
-  if (!digitalRead(LEFT)) {
+  if (!digitalRead(LEFT) & direct != RIGHT) {
     direct = LEFT;
   }
-  if (!digitalRead(DOWN)) {
+  if (!digitalRead(DOWN)& direct != UP) {
     direct = DOWN;
   }
-  if (!digitalRead(UP)) {
+  if (!digitalRead(UP)& direct != DOWN) {
     direct = UP;
   }
 
   moveDelay --;
   if (moveDelay < 0) {
-    drawFrame = true;
+
 
     moveDelay = moveDelayReset;
     updateUnits();
@@ -639,28 +639,30 @@ void resetPlayArea() {
 void loop() {
   // put your main code here, to run repeatedly:
   if (!showTitle & !gameover) {
-    if (drawFrame) {
-      display.drawRect(0, 0, width, height, WHITE);
-      display.fillRect(x, y, unitSize, unitSize, WHITE);
-      display.setCursor(width / 2, 3);
-      display.print(score);
-      drawUnits();
-      ////draw apple
-      display.drawRect(apple.x, apple.y, unitSize, unitSize, WHITE);
-      display.drawPixel(apple.x + 1, apple.y - 1, WHITE);
-      display.drawPixel(apple.x, apple.y - 2, WHITE);
-      /////////
 
-      //display.drawBitmap(apple.x,apple.y,appleImg,8,8,WHITE);
-      display.display();
-      drawFrame = false;
-    }
 
+
+    display.drawRect(0, 0, width, height, WHITE);
+    display.fillRect(x, y, unitSize, unitSize, WHITE);
+    display.setCursor(width / 2, 3);
+    display.print(score);
+    drawUnits();
+    ////draw apple
+    display.drawRect(apple.x, apple.y, unitSize, unitSize, WHITE);
+    display.drawPixel(apple.x + 1, apple.y - 1, WHITE);
+    display.drawPixel(apple.x, apple.y - 2, WHITE);
+    /////////
+
+    //display.drawBitmap(apple.x,apple.y,appleImg,8,8,WHITE);
+    display.display();
+
+    display.clearDisplay();
     updateHead();
     checkCollision();
     display.setCursor(x, y);
-    display.clearDisplay();
     delay (moveDelay);
+
+
   } else if (showTitle) {
     titleScreen();
   } else if (gameover) {
