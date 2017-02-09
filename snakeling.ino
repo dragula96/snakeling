@@ -12,23 +12,19 @@
 
 
 
-#include <SPI.h>
-#include <Wire.h>
-#include "ArduboyDev.h"
+#include "Arduboy.h"
 #include "Collision.h"
-#include <EEPROM.h>
-Arduboy display;
+
+Arduboy arduboy;
 Collision collision;
-const byte width = 128;   //Width of screen
-const byte height = 64;   //Hight of screen
-#define RIGHT 5
-#define LEFT 9
-#define UP 8
-#define DOWN 10
-#define A_BTN A0
-#define B_BTN A1
-#define BLACK 0
-#define WHITE 1
+
+
+#define RIGHT 1
+#define LEFT 2
+#define UP 3
+#define DOWN 4
+
+#define EEPROM_FILE_NUMBER 4
 
 boolean gameover = false;
 boolean showTitle = true;
@@ -41,12 +37,12 @@ char initials[3];
 ///
 int score = 0;
 byte activeNum = 0;
-byte     moveAmount = 3;
+byte moveAmount = 3;
 const int unitSize = 3;
 byte  moveDelayReset = 5;
-int slowDelay = 9;
-byte medDelay = 5;
-byte fastDelay = 3;
+int slowDelay = 16;
+byte medDelay = 12;
+byte fastDelay = 8;
 int moveDelay = moveDelayReset;
 
 byte direct = RIGHT;
@@ -71,13 +67,12 @@ Unit apple;
 
 void setup() {
   // put your setup code here, to run once:
-  SPI.begin();
-  display.start();
+  arduboy.begin();
 
   intro();
 
-  display.setTextSize(1);
-  display.setCursor(x, y);
+  arduboy.setTextSize(1);
+  arduboy.setCursor(x, y);
 
   pressATimer = pressATimerReset;
 
@@ -87,22 +82,10 @@ void setup() {
 
 void intro()
 {
-  display.setTextSize(1);
-  for (int i = -8; i < 28; i = i + 2)
-  {
-    display.clearDisplay();
-    display.setCursor(46, i);
-
-    display.print("ARDUBOY");
-
-    display.display();
-    delay(2);
-  }
-
-  tone(A2, 987, 160);
+  arduboy.tunes.tone(987, 160);
   delay(160);
 
-  tone(A2, 1318, 400);
+  arduboy.tunes.tone(1318, 400);
   delay(2000);
 }
 
@@ -110,7 +93,7 @@ void intro()
 void displayHighScores(byte file)
 {
 
-  display.setTextSize(1);
+  arduboy.setTextSize(1);
 
   byte y = 10;
   byte x = 24;
@@ -118,17 +101,17 @@ void displayHighScores(byte file)
   // is 5 bytes long:  3 bytes for initials and two bytes for score.
   int address = file * 10 * 5;
   byte hi, lo;
-  display.clearDisplay();
-  display.setCursor(32, 0);
-  display.print("HIGH SCORES");
-  display.display();
+  arduboy.clear();
+  arduboy.setCursor(32, 0);
+  arduboy.print("HIGH SCORES");
+  arduboy.display();
 
   for (int i = 0; i < 10; i++)
   {
     sprintf(text, "%2d", i + 1);
-    display.setCursor(x, y + (i * 8));
-    display.print( text);
-    display.display();
+    arduboy.setCursor(x, y + (i * 8));
+    arduboy.print( text);
+    arduboy.display();
     hi = EEPROM.read(address + (5 * i));
     lo = EEPROM.read(address + (5 * i) + 1);
 
@@ -148,15 +131,15 @@ void displayHighScores(byte file)
     if (score > 0)
     {
       sprintf(text, "%c%c%c %u", initials[0], initials[1], initials[2], score);
-      display.setCursor(x + 24, y + (i * 8));
-      display.print(text);
-      //display.display();
+      arduboy.setCursor(x + 24, y + (i * 8));
+      arduboy.print(text);
+      //arduboy.display();
     }
   }
-  display.display();
+  arduboy.display();
   boolean exitLoop = false;
   while (!exitLoop) {
-    if (!digitalRead(B_BTN))
+    if (arduboy.pressed(B_BUTTON))
     {
       delay(300);
       exitLoop = true;
@@ -173,7 +156,7 @@ void enterInitials()
 {
   char index = 0;
 
-  display.clearDisplay();
+  arduboy.clear();
 
   initials[0] = ' ';
   initials[1] = ' ';
@@ -181,29 +164,29 @@ void enterInitials()
 
   while (true)
   {
-    display.display();
-    display.clearDisplay();
+    arduboy.display();
+    arduboy.clear();
 
-    display.setCursor(16, 0);
-    display.print("HIGH SCORE");
+    arduboy.setCursor(16, 0);
+    arduboy.print("HIGH SCORE");
     sprintf(text, "%u", score);
-    display.setCursor(88, 0);
-    display.print(text);
-    display.setCursor(56, 20);
-    display.print(initials[0]);
-    display.setCursor(64, 20);
-    display.print(initials[1]);
-    display.setCursor(72, 20);
-    display.print(initials[2]);
+    arduboy.setCursor(88, 0);
+    arduboy.print(text);
+    arduboy.setCursor(56, 20);
+    arduboy.print(initials[0]);
+    arduboy.setCursor(64, 20);
+    arduboy.print(initials[1]);
+    arduboy.setCursor(72, 20);
+    arduboy.print(initials[2]);
     for (byte i = 0; i < 3; i++)
     {
-      display.drawLine(56 + (i * 8), 27, 56 + (i * 8) + 6, 27, 1);
+      arduboy.drawLine(56 + (i * 8), 27, 56 + (i * 8) + 6, 27, 1);
     }
-    display.drawLine(56, 28, 88, 28, 0);
-    display.drawLine(56 + (index * 8), 28, 56 + (index * 8) + 6, 28, 1);
+    arduboy.drawLine(56, 28, 88, 28, 0);
+    arduboy.drawLine(56 + (index * 8), 28, 56 + (index * 8) + 6, 28, 1);
     delay(150);
 
-    if (!digitalRead(5))
+    if (arduboy.pressed(RIGHT_BUTTON))
     {
       index--;
       if (index < 0)
@@ -212,11 +195,11 @@ void enterInitials()
       } else
       {
 
-        tone(A2, 1046, 250);
+        arduboy.tunes.tone(1046, 250);
       }
     }
 
-    if (!digitalRead(9))
+    if (arduboy.pressed(LEFT_BUTTON))
     {
       index++;
       if (index > 2)
@@ -224,15 +207,15 @@ void enterInitials()
         index = 2;
       }  else {
 
-        tone(A2, 1046, 250);
+        arduboy.tunes.tone(1046, 250);
       }
     }
 
-    if (!digitalRead(8))
+    if (arduboy.pressed(UP_BUTTON))
     {
       initials[index]++;
 
-      tone(A2, 523, 250);
+      arduboy.tunes.tone(523, 250);
       // A-Z 0-9 :-? !-/ ' '
       if (initials[index] == '0')
       {
@@ -252,11 +235,11 @@ void enterInitials()
       }
     }
 
-    if (!digitalRead(10))
+    if (arduboy.pressed(DOWN_BUTTON))
     {
       initials[index]--;
 
-      tone(A2, 523, 250);
+      arduboy.tunes.tone(523, 250);
       if (initials[index] == ' ') {
         initials[index] = '?';
       }
@@ -271,16 +254,16 @@ void enterInitials()
       }
     }
 
-    if (!digitalRead(A0))
+    if (arduboy.pressed(A_BUTTON))
     {
       if (index < 2)
       {
         index++;
 
-        tone(A2, 1046, 250);
+        arduboy.tunes.tone(1046, 250);
       } else {
 
-        tone(A2, 1046, 250);
+        arduboy.tunes.tone(1046, 250);
         return;
       }
     }
@@ -296,7 +279,7 @@ void enterHighScore(byte file)
   byte hi, lo;
   char tmpInitials[3];
   unsigned int tmpScore = 0;
-  display.setTextSize(1);
+  arduboy.setTextSize(1);
   // High score processing
   for (byte i = 0; i < 10; i++)
   {
@@ -333,11 +316,11 @@ void enterHighScore(byte file)
         tmpInitials[2] = (char)EEPROM.read(address + (5 * j) + 4);
 
         // write score and initials to current slot
-        EEPROM.write(address + (5 * j), ((score >> 8) & 0xFF));
-        EEPROM.write(address + (5 * j) + 1, (score & 0xFF));
-        EEPROM.write(address + (5 * j) + 2, initials[0]);
-        EEPROM.write(address + (5 * j) + 3, initials[1]);
-        EEPROM.write(address + (5 * j) + 4, initials[2]);
+        EEPROM.update(address + (5 * j), ((score >> 8) & 0xFF));
+        EEPROM.update(address + (5 * j) + 1, (score & 0xFF));
+        EEPROM.update(address + (5 * j) + 2, initials[0]);
+        EEPROM.update(address + (5 * j) + 3, initials[1]);
+        EEPROM.update(address + (5 * j) + 4, initials[2]);
 
         // tmpScore and tmpInitials now hold what we want to
         //write in the next slot.
@@ -363,7 +346,7 @@ void drawUnits() {
   if (activeNum > 0) {
     for (byte i = 0; i < activeNum - 1; i++) {
 
-      display.fillRect(body[i].x, body[i].y, unitSize, unitSize, WHITE);
+      arduboy.fillRect(body[i].x, body[i].y, unitSize, unitSize, WHITE);
 
     }
   }
@@ -388,7 +371,7 @@ void updateUnits() {
   }
 }
 void checkCollision() {
-  if (x < 0 | x > width - unitSize | y > height - unitSize | y < 0) {
+  if (x < 0 | x > WIDTH - unitSize | y > HEIGHT - unitSize | y < 0) {
 
     delay(500);
     gameover = true;
@@ -408,7 +391,7 @@ void checkCollision() {
   }
 
   if (collision.collideRectRect(apple.x, apple.y, unitSize, unitSize, x, y, unitSize, unitSize)) {
-    tone(A2, 800, 200);
+    arduboy.tunes.tone(800, 200);
     if (moveDelayReset == slowDelay)
       score += 5;
     if (moveDelayReset == medDelay)
@@ -436,16 +419,16 @@ void resetApple() {
 
 void updateHead() {
 
-  if (!digitalRead(RIGHT) & direct != LEFT) {
+  if (arduboy.pressed(RIGHT_BUTTON) & direct != LEFT) {
     direct = RIGHT;
   }
-  if (!digitalRead(LEFT) & direct != RIGHT) {
+  if (arduboy.pressed(LEFT_BUTTON) & direct != RIGHT) {
     direct = LEFT;
   }
-  if (!digitalRead(DOWN)& direct != UP) {
+  if (arduboy.pressed(DOWN_BUTTON) & direct != UP) {
     direct = DOWN;
   }
-  if (!digitalRead(UP)& direct != DOWN) {
+  if (arduboy.pressed(UP_BUTTON) & direct != DOWN) {
     direct = UP;
   }
 
@@ -459,7 +442,6 @@ void updateHead() {
       case RIGHT:
         x += moveAmount;
         break;
-
       case LEFT:
         x -= moveAmount;
         break;
@@ -485,14 +467,14 @@ void titleScreen()
 {
 
   //Clears the screen
-  display.clearDisplay();
-  display.setCursor(8, 16);
-  display.setTextSize(2);
-  display.print("SNAKELING");
-  display.setTextSize(1);
-  //display.display();
+  arduboy.clear();
+  arduboy.setCursor(8, 16);
+  arduboy.setTextSize(2);
+  arduboy.print("SNAKELING");
+  arduboy.setTextSize(1);
+  //arduboy.display();
 
-  if (!digitalRead(A_BTN))
+  if (arduboy.pressed(A_BUTTON))
   {
 
     menuSelect();
@@ -505,32 +487,32 @@ void titleScreen()
 
   }
 
-  if (!digitalRead(B_BTN)) {
+  if (arduboy.pressed(B_BUTTON)) {
     delay(300);
-    displayHighScores(4);
+    displayHighScores(EEPROM_FILE_NUMBER);
   }
   if (showTitle) {
     pressATimer --;
     if (pressATimer > 0) {
 
       //Draws "Press FIRE"
-      //display.bitmap(31, 53, fire);  display.display();
-      display.setCursor(16, 40);
-      display.print("PRESS A To Start");
-      display.setCursor(9, 50);
-      display.print("PRESS B For Scores");
-      display.display();
+      //arduboy.bitmap(31, 53, fire);  arduboy.display();
+      arduboy.setCursor(16, 40);
+      arduboy.print("PRESS A To Start");
+      arduboy.setCursor(9, 50);
+      arduboy.print("PRESS B For Scores");
+      arduboy.display();
 
     } else if (pressATimer < 0) {
       //Removes "Press FIRE"
-      display.clearDisplay();
-      display.setCursor(8, 16);
-      display.setTextSize(2);
-      display.print("SNAKELING");
-      display.setTextSize(1);
-      display.display();
+      arduboy.clear();
+      arduboy.setCursor(8, 16);
+      arduboy.setTextSize(2);
+      arduboy.print("SNAKELING");
+      arduboy.setTextSize(1);
+      arduboy.display();
 
-      display.display();
+      arduboy.display();
     }
     if (pressATimer < -pressATimerReset) {
       pressATimer = pressATimerReset;
@@ -546,46 +528,46 @@ void menuSelect() {
   byte pointerY = 26;
   int currentSelected = 0;
 
-  display.clearDisplay();
-  display.drawRect(0, 0, width, height, WHITE);
-  display.setCursor(14, 30);
-  display.print("Slow   Med   Fast");
-  display.drawRect(pointerX, pointerY, 30, 18, WHITE);
-  display.setCursor(28, 5);
-  display.setTextSize(1);
-  display.print("Speed Select");
-  display.display();
+  arduboy.clear();
+  arduboy.drawRect(0, 0, WIDTH, HEIGHT, WHITE);
+  arduboy.setCursor(14, 30);
+  arduboy.print("Slow   Med   Fast");
+  arduboy.drawRect(pointerX, pointerY, 30, 18, WHITE);
+  arduboy.setCursor(28, 5);
+  arduboy.setTextSize(1);
+  arduboy.print("Speed Select");
+  arduboy.display();
   delay(800);
   while (!exitLoop) {
-    display.clearDisplay();
-    display.drawRect(0, 0, width, height, WHITE);
-    display.setCursor(14, 30);
-    display.print("Slow   Med   Fast");
-    display.drawRect(pointerX, pointerY, 30, 18, WHITE);
-    display.setCursor(28, 5);
-    display.setTextSize(1);
-    display.print("Speed Select");
-    display.display();
+    arduboy.clear();
+    arduboy.drawRect(0, 0, WIDTH, HEIGHT, WHITE);
+    arduboy.setCursor(14, 30);
+    arduboy.print("Slow   Med   Fast");
+    arduboy.drawRect(pointerX, pointerY, 30, 18, WHITE);
+    arduboy.setCursor(28, 5);
+    arduboy.setTextSize(1);
+    arduboy.print("Speed Select");
+    arduboy.display();
 
-    if (!digitalRead(RIGHT)) {
+    if (arduboy.pressed(RIGHT_BUTTON)) {
       currentSelected ++;
       if (currentSelected > 2) {
         currentSelected = 0;
 
       }
-      tone(A2, 400, 200);
+      arduboy.tunes.tone(400, 200);
       delay(300);
     }
 
-    if (!digitalRead(LEFT)) {
+    if (arduboy.pressed(LEFT_BUTTON)) {
       currentSelected --;
       if (currentSelected < 0) {
         currentSelected = 2;
       }
-      tone(A2, 400, 200);
+      arduboy.tunes.tone(400, 200);
       delay(300);
     }
-    if (!digitalRead(A_BTN)) {
+    if (arduboy.pressed(A_BUTTON)) {
       if (currentSelected == 0)
         moveDelayReset = slowDelay;
       if (currentSelected == 1)
@@ -593,11 +575,11 @@ void menuSelect() {
       if (currentSelected == 2)
         moveDelayReset = fastDelay;
 
-      display.fillRect(pointerX, pointerY, 30, 18, WHITE);
-      display.display();
+      arduboy.fillRect(pointerX, pointerY, 30, 18, WHITE);
+      arduboy.display();
       delay(400);
-      display.clearDisplay();
-      display.display();
+      arduboy.clear();
+      arduboy.display();
 
       exitLoop = true;
     }
@@ -615,16 +597,16 @@ void menuSelect() {
 }
 
 void gameoverScreen() {
-  display.clearDisplay();
-  display.setCursor(12, 24);
-  display.setTextSize(2);
-  display.print("Game Over");
-  display.display();
+  arduboy.clear();
+  arduboy.setCursor(12, 24);
+  arduboy.setTextSize(2);
+  arduboy.print("Game Over");
+  arduboy.display();
   delay(4000);
-  enterHighScore(4);
+  enterHighScore(EEPROM_FILE_NUMBER);
   resetPlayArea();
-
 }
+
 void resetPlayArea() {
   score = 0;
   resetApple();
@@ -642,24 +624,24 @@ void loop() {
 
 
 
-    display.drawRect(0, 0, width, height, WHITE);
-    display.fillRect(x, y, unitSize, unitSize, WHITE);
-    display.setCursor(width / 2, 3);
-    display.print(score);
+    arduboy.drawRect(0, 0, WIDTH, HEIGHT, WHITE);
+    arduboy.fillRect(x, y, unitSize, unitSize, WHITE);
+    arduboy.setCursor(WIDTH / 2, 3);
+    arduboy.print(score);
     drawUnits();
     ////draw apple
-    display.drawRect(apple.x, apple.y, unitSize, unitSize, WHITE);
-    display.drawPixel(apple.x + 1, apple.y - 1, WHITE);
-    display.drawPixel(apple.x, apple.y - 2, WHITE);
+    arduboy.drawRect(apple.x, apple.y, unitSize, unitSize, WHITE);
+    arduboy.drawPixel(apple.x + 1, apple.y - 1, WHITE);
+    arduboy.drawPixel(apple.x, apple.y - 2, WHITE);
     /////////
 
-    //display.drawBitmap(apple.x,apple.y,appleImg,8,8,WHITE);
-    display.display();
+    //arduboy.drawBitmap(apple.x,apple.y,appleImg,8,8,WHITE);
+    arduboy.display();
 
-    display.clearDisplay();
+    arduboy.clear();
     updateHead();
     checkCollision();
-    display.setCursor(x, y);
+    arduboy.setCursor(x, y);
     delay (moveDelay);
 
 
